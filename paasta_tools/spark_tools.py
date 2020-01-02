@@ -1,6 +1,8 @@
 import logging
 import os
 import sys
+from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import Tuple
 
@@ -9,6 +11,7 @@ from botocore.session import Session
 from ruamel.yaml import YAML
 from typing_extensions import TypedDict
 
+from paasta_tools.secret_tools import decrypt_secret_environment_variables
 from paasta_tools.utils import paasta_print
 from paasta_tools.utils import PaastaColors
 
@@ -105,13 +108,18 @@ def get_default_event_log_dir(**kwargs) -> str:
     return None
 
 
-def load_mesos_secret_for_spark():
-    try:
-        with open(DEFAULT_SPARK_MESOS_SECRET_FILE, "r") as f:
-            return f.read()
-    except IOError as e:
-        paasta_print(
-            "Cannot load mesos secret from %s" % DEFAULT_SPARK_MESOS_SECRET_FILE,
-            file=sys.stderr,
-        )
-        raise e
+def load_mesos_secret_for_spark(
+    secret_provider_name: str,
+    soa_dir: str,
+    service_name: str,
+    cluster_name: str,
+    secret_provider_kwargs: Dict[str, Any],
+) -> str:
+    return decrypt_secret_environment_variables(
+        secret_provider_name=secret_provider_name,
+        environment={"SPARK_MESOS_SECRET": "SHARED_SECRET(SPARK_MESOS_SECRET)"},
+        soa_dir=soa_dir,
+        service_name=service_name,
+        cluster_name=cluster_name,
+        secret_provider_kwargs=secret_provider_kwargs,
+    )["SPARK_MESOS_SECRET"]
